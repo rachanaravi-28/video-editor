@@ -12,7 +12,7 @@ All assets, scripts, references, and motion graphics live in:
 ~/Documents/sketchy-video-editor/
 ```
 
-Clone: `git clone https://github.com/PrateekDarshan/sketchy-video-editor`
+Clone: `git clone https://github.com/PrattDarsh/sketchy-video-editor`
 
 ## What this skill covers
 End-to-end pipeline: raw iPhone footage → SDR conversion → transcription → filler cut → portrait assembly → animated captions → score badges → thumbnail title card → BGM → outro → loudnorm → final 1080×1920 MP4.
