@@ -1,0 +1,28 @@
+# Raw footage, B-roll, renders — project-specific, not in repo
+*.MOV
+*.mov
+*.mp4
+*.MP4
+sdr/
+renders/
+broll/
+final_*.mp4
+main_*.mp4
+base.mp4
+
+# Transcripts & EDL outputs (project-specific, not shared)
+transcript.json
+*.srt
+captions.ass
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Secrets
+.env
+*.env
+
+# macOS
+.DS_Store

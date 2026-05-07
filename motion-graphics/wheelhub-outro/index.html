@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1080px;
+    height: 1920px;
+    overflow: hidden;
+    background: #0A0A0A;
+  }
+
+  @font-face {
+    font-family: 'Manrope';
+    src: url('assets/Manrope-Regular.ttf') format('truetype');
+    font-weight: 400;
+  }
+  @font-face {
+    font-family: 'Manrope';
+    src: url('assets/Manrope-ExtraBold.ttf') format('truetype');
+    font-weight: 800;
+  }
+
+  #bg-gradient {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 120% 60% at 50% 120%, rgba(247,198,35,0.13) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 40% at 80% -10%, rgba(247,198,35,0.07) 0%, transparent 50%),
+      #0A0A0A;
+  }
+
+  #grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(247,198,35,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(247,198,35,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  #center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 900px;
+  }
+
+  #logo {
+    width: 360px;
+    filter: drop-shadow(0 0 40px rgba(247,198,35,0.25));
+  }
+
+  #tagline {
+    margin-top: 24px;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 400;
+    font-size: 36px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  #rule {
+    margin-top: 32px;
+    height: 3px;
+    background: #F7C623;
+    border-radius: 2px;
+  }
+
+  #cta {
+    margin-top: 32px;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    font-size: 52px;
+    color: #FFFFFF;
+    letter-spacing: -0.01em;
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  #cta span { color: #F7C623; }
+
+  #sub {
+    margin-top: 20px;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 400;
+    font-size: 30px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  #handle {
+    position: absolute;
+    bottom: 140px;
+    width: 100%;
+    text-align: center;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    font-size: 38px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  #fade {
+    position: absolute;
+    inset: 0;
+    background: #0A0A0A;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div
+  id="stage"
+  data-composition-id="wheelhub-outro"
+  data-start="0"
+  data-duration="4.5"
+  data-width="1080"
+  data-height="1920"
+>
+  <div id="bg-gradient"></div>
+  <div id="grid"></div>
+
+  <div id="center">
+    <img id="logo" src="assets/wheelhub_logo.png" alt="WheelHub">
+    <div id="tagline">Premium Refurbished Motorcycles</div>
+    <div id="rule"></div>
+    <div id="cta">Find your<br><span>perfect ride.</span></div>
+    <div id="sub">wheelhub.in</div>
+  </div>
+
+  <div id="handle">@wheelhub.in</div>
+  <div id="fade"></div>
+</div>
+
+<script>
+window.__timelines = window.__timelines || {};
+const tl = gsap.timeline({ paused: true });
+const DURATION = 4.5;
+
+// Set initial state via GSAP (avoid CSS transform conflicts with linter)
+gsap.set("#bg-gradient", { opacity: 0 });
+gsap.set("#grid",        { opacity: 0 });
+gsap.set("#logo",        { opacity: 0, y: 30 });
+gsap.set("#tagline",     { opacity: 0, y: 20 });
+gsap.set("#rule",        { width: 0 });
+gsap.set("#cta",         { opacity: 0, y: 20 });
+gsap.set("#sub",         { opacity: 0, y: 16 });
+gsap.set("#handle",      { opacity: 0 });
+gsap.set("#fade",        { opacity: 1 });
+
+// Fade in from black
+tl.to("#fade",        { opacity: 0, duration: 0.5, ease: "power2.out" }, 0);
+
+// Background
+tl.to("#bg-gradient", { opacity: 1, duration: 1.2, ease: "power2.out" }, 0.1);
+tl.to("#grid",        { opacity: 1, duration: 1.5, ease: "power2.out" }, 0.2);
+
+// Logo
+tl.to("#logo",        { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.5);
+
+// Tagline
+tl.to("#tagline",     { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 1.0);
+
+// Yellow rule expands
+tl.to("#rule",        { width: 120, duration: 0.6, ease: "power2.inOut" }, 1.3);
+
+// CTA
+tl.to("#cta",         { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 1.7);
+
+// Sub
+tl.to("#sub",         { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 2.1);
+
+// Handle
+tl.to("#handle",      { opacity: 1, duration: 0.6, ease: "power2.out" }, 2.4);
+
+// Fade to black
+tl.to("#fade",        { opacity: 1, duration: 0.5, ease: "power2.in" }, DURATION - 0.5);
+
+window.__timelines["wheelhub-outro"] = tl;
+</script>
+</body>
+</html>
