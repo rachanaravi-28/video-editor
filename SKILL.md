@@ -155,5 +155,18 @@ Color editor features: Temperature, Tint, Saturation, Exposure, Contrast, Highli
 
 ---
 
+### Ragi to Raga (restaurant, Bengaluru)
+| Element | Value |
+|---|---|
+| Font family | Satoshi Black (`clients/ragi-to-raga/assets/fonts/`) |
+| Caption style | All white, Alignment=2 (bottom), MarginV=700, max 4 words/phrase |
+| Watermark | `assets/Logo.png` scaled 200px, `overlay=60:60` |
+| Output fps | **30fps** |
+| Speech volume | `volume=2.0` |
+| BGM | Classical Indian — `assets/bgm_indian_meditations.mp3`, `volume=0.15`, fade out last 3s |
+| B-roll SFX | Camera shutter on B-roll entry: `sfx/camera-shutter.wav` |
+| Outro | `clients/ragi-to-raga/assets/outro.mp4` — 12.3s, append with 0.5s xfade |
+| See | `clients/ragi-to-raga/brand.md` |
+
 ## Other clients
-This skill documents Sketchy Studio and Wheelhub defaults. For new clients, ask for brand colors, fonts, and logos before proceeding — the pipeline steps stay the same.
+This skill documents Sketchy Studio, Wheelhub, and Ragi to Raga defaults. For new clients, ask for brand colors, fonts, logos, and outro before proceeding — the pipeline steps stay the same.

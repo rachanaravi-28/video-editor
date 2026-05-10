@@ -101,6 +101,7 @@ Full ffmpeg commands: [`references/pipeline.md`](references/pipeline.md)
 |---|---|---|---|---|
 | Sketchy Studio | 24 | Satoshi | `#9355E6` purple | [`clients/sketchy-studio/brand.md`](clients/sketchy-studio/brand.md) |
 | Wheelhub | 30 | Manrope ExtraBold | `#F7C623` yellow | [`clients/wheelhub/brand.md`](clients/wheelhub/brand.md) |
+| Ragi to Raga | 30 | Satoshi Black | natural/warm | [`clients/ragi-to-raga/brand.md`](clients/ragi-to-raga/brand.md) |
 
 ---
 

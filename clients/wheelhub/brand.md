@@ -60,8 +60,11 @@ ffmpeg -y -f lavfi -i color=c=0xF7C623:size=1080x1920:rate=30:duration=2.5 \
 - Duration: 4.5s, dark bg (#0A0A0A), yellow accents, FullLogo_black.png centered
 - Render: `npx hyperframes render wheelhub-outro --output renders/outro.mp4 --fps 30`
 
+## Speech Volume
+- `volume=2.0` for iPhone talking head clips
+
 ## BGM
-- Style: goofy, funny, upbeat (lofi/chill also works for talking heads)
+- Style: lofi/chill for talking heads (e.g. Mixkit "Sleepy Cat" ID 135)
 - Mix at ~22% volume (`volume=0.22`)
 - Fade out last 3s before video ends
 
