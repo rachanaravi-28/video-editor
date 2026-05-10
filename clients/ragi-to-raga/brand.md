@@ -13,7 +13,8 @@ Ragi to Raga is a restaurant in Bengaluru on Kanakapura Road, next to Doddaballa
 ## Source Footage
 - iPhone HLG (arib-std-b67, bt2020nc) — use `setparams` relabeling approach for SDR conversion
 - Typical resolution: 3840x2160 (4K), auto-rotated to 1080x1920 portrait by ffmpeg
-- Conversion filter: `setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709,eq=contrast=1.06:saturation=1.2,scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2`
+- Conversion filter (Hable tone map — preferred, produces natural iPhone look):
+  `zscale=t=linear:npl=203:m=bt2020nc:r=tv,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv:p=bt709,scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,fps=30,format=yuv420p`
 
 ## Audio Levels
 - Speech: volume=2.0
