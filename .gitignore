@@ -9,8 +9,11 @@ broll/
 final_*.mp4
 main_*.mp4
 base.mp4
-# Exception: client asset files (outros) ARE tracked
+# Exception: client asset files (outros, food images) ARE tracked
 !clients/**/assets/*.mp4
+!clients/**/assets/*.jpg
+!clients/**/assets/*.png
+!clients/**/assets/*.mp3
 
 # Transcripts & EDL outputs (project-specific, not shared)
 transcript.json

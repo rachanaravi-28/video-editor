@@ -48,11 +48,17 @@ Style: Default,{FONT},{FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
+FIXES = {
+    'Ragi 2 Raga': 'Ragi to Raga',
+}
+
 lines = [header]
 for phrase in phrases:
     start = phrase[0]['start']
     end = phrase[-1]['end']
     text = ' '.join(w['text'] for w in phrase)
+    for wrong, right in FIXES.items():
+        text = text.replace(wrong, right)
     lines.append(f"Dialogue: 0,{ts(start)},{ts(end)},Default,,0,0,0,,{text}")
 
 out = '\n'.join(lines)

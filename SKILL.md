@@ -153,6 +153,11 @@ Color editor features: Temperature, Tint, Saturation, Exposure, Contrast, Highli
 | Font not found by libass | `fc-query --format="%{family}\n" font.ttf` — exact family name must match |
 | Audio bleeds after cut point | `atrim=end=<t>` + `afade=out:start_time=<t-0.2>:duration=0.2` |
 | Canvas preview ≠ ffmpeg output | Use `/preview` endpoint in `color_server.py` — actual ffmpeg frames |
+| `Error reinitializing filters` on xfade | Add `fps=30,format=yuv420p` before EVERY xfade input |
+| B-roll doesn't show at overlay window | Use `setpts=PTS-STARTPTS+(START_TIME/TB)` — without offset, B-roll exhausts before enable window |
+| Image rotation shows wrong bg color | Sample exact bg color: `ffmpeg -i img -vf "crop=50:50:10:10,scale=1:1" -f rawvideo -pix_fmt rgb24 pipe:1` |
+| Captions hidden under B-roll | Apply `subtitles` AFTER B-roll overlay, not before |
+| ElevenLabs transcribes numbers as digits | Add text FIXES dict to gen_captions script (e.g. "2 Raga" → "to Raga") |
 
 ---
 
