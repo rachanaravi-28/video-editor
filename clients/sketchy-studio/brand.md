@@ -23,6 +23,13 @@ Social media content studio. Tone: goofy, funny, engaging, fast-paced.
 | `assets/Logo_black.png`    | Logo on light backgrounds     |
 | `assets/Logo_white.png`    | Logo on dark backgrounds      |
 
+## iPhone HLG → SDR Conversion
+If source is iPhone HLG (arib-std-b67), use Hable tone map inline:
+```
+zscale=t=linear:npl=203:m=bt2020nc:r=tv,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv:p=bt709,scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,fps=30,format=yuv420p
+```
+Check with: `ffprobe -show_streams input.MOV | grep color_transfer` — if `arib-std-b67`, apply Hable.
+
 ## Output Specs
 - Resolution: 1080×1920 (portrait)
 - Frame rate: **24fps**
