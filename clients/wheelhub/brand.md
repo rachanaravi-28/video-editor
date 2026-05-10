@@ -24,6 +24,12 @@ Premium refurbished motorcycles. Tone: confident, energetic, trustworthy.
 | `assets/FullLogo_black.png` | Full wordmark for outro (2914×448, RGBA)     |
 | `assets/logo_watermark.png` | Pre-scaled watermark for top-left (140×110)  |
 
+## iPhone HLG → SDR Conversion
+Use Hable tone map inline (no pre-conversion step):
+```
+zscale=t=linear:npl=203:m=bt2020nc:r=tv,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv:p=bt709,scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,fps=30,format=yuv420p
+```
+
 ## Output Specs
 - Resolution: 1080×1920 (portrait)
 - Frame rate: **30fps**

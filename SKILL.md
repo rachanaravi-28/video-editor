@@ -73,11 +73,12 @@ End-to-end pipeline: raw iPhone footage → SDR conversion → transcription →
 See `references/pipeline.md` for all ffmpeg commands.
 
 ### Step 1 — SDR pre-conversion (iPhone HLG)
-```bash
-ffmpeg -i input.MOV \
-  -vf "setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709,eq=contrast=1.06:saturation=1.2" \
-  -c:v libx264 -crf 18 -preset fast -c:a aac -b:a 192k sdr/input.mp4
+Apply Hable tone map inline during the final render (no pre-conversion step needed):
 ```
+HLG_SDR="zscale=t=linear:npl=203:m=bt2020nc:r=tv,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv:p=bt709,scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,fps=30,format=yuv420p"
+```
+Use `[N:v]${HLG_SDR}[out]` in filter_complex for every iPhone input.
+**Do NOT use `setparams` — it's a no-op relabel that doesn't change pixels.**
 
 ### Step 2 — Transcription
 ```bash
