@@ -1,36 +1,25 @@
-# Sketchy Video Editor
+# Video Editor
 
-AI-assisted video editing pipeline for The Sketchy Studio and its clients. Clone this repo and you have everything needed to produce polished portrait reels from raw iPhone footage.
+AI-assisted pipeline for producing polished portrait reels from raw iPhone footage.
 
 ---
 
 ## What's inside
 
 ```
-sketchy-video-editor/
-├── clients/
-│   ├── wheelhub/
-│   │   ├── brand.md          ← colors, fonts, specs, caption style
-│   │   └── assets/           ← logos, watermark, fonts
-│   └── sketchy-studio/
-│       ├── brand.md
-│       └── assets/           ← logos, fonts
+video-editor/
 ├── scripts/
 │   ├── color_server.py       ← local color editor (Lightroom-style, ffmpeg-accurate)
 │   ├── color_editor.html     ← served by color_server.py at localhost:7788
-│   ├── gen_captions_wheelhub.py   ← ASS caption generator (EDL-aware, team tags)
-│   └── gen_captions_generic.py    ← ASS caption generator (single clip)
+│   └── gen_captions_generic.py  ← ASS caption generator (CLI, single clip)
 ├── sfx/
 │   └── camera-shutter.wav    ← played on B-roll entry
-├── motion-graphics/
-│   ├── wheelhub-outro/       ← HyperFrames outro (dark bg, yellow accents, 4.5s, 30fps)
-│   └── sketchy-outro/        ← HyperFrames outro (white bg, logo pop, 4s, 24fps)
 ├── references/
 │   └── pipeline.md           ← all ffmpeg commands, step by step
-└── SKILL.md                  ← Claude AI skill (load into ~/.claude/skills/)
+└── README.md
 ```
 
-> Raw footage, B-roll clips, and project renders are **not** stored in this repo. Drop source clips into a local project folder and point the scripts at them.
+> Raw footage, B-roll clips, and renders are **not** stored in this repo. Drop source clips into a local project folder and point the scripts at them.
 
 ---
 
@@ -42,14 +31,11 @@ sketchy-video-editor/
 # ffmpeg with libass (required for captions)
 brew install ffmpeg-full
 
-# HyperFrames (for outros)
-npm install -g hyperframes
-
 # Python transcription engine
 cd ~/Developer && git clone https://github.com/heygen-com/video-use
 cd video-use && uv sync
 
-# Node version ≥ 18
+# Node version ≥ 18 (optional, for HyperFrames outros)
 node --version
 ```
 
@@ -59,22 +45,16 @@ node --version
 cp .env.example .env
 # Fill in:
 # ELEVENLABS_API_KEY=...
-# FREEPIK_API_KEY=...
 ```
 
 ### 3. Install fonts
 
-Copy fonts to system:
+Copy your project fonts to the system font directory:
+
 ```bash
 # macOS
-cp clients/wheelhub/assets/fonts/*.ttf ~/Library/Fonts/
-cp clients/sketchy-studio/assets/fonts/*.otf ~/Library/Fonts/
-```
-
-### 4. Install the Claude skill (optional, for AI-assisted editing)
-
-```bash
-cp SKILL.md ~/.claude/skills/sketchy-video-editor/SKILL.md
+cp path/to/fonts/*.ttf ~/Library/Fonts/
+cp path/to/fonts/*.otf ~/Library/Fonts/
 ```
 
 ---
@@ -85,49 +65,73 @@ cp SKILL.md ~/.claude/skills/sketchy-video-editor/SKILL.md
 2. **Transcribe** with ElevenLabs Scribe (word-level timestamps)
 3. **EDL** — craft `edl.json`, remove filler words
 4. **Render base** via `video-use`
-5. **Assemble** — B-roll overlays, watermark, captions
-6. **BGM + SFX** — lofi mix + camera shutter on B-roll
-7. **Outro** — HyperFrames render, xfade transition
-8. **Loudnorm** — two-pass to −14 LUFS
-9. **Color correct** (optional) — `python3 scripts/color_server.py` → `open http://localhost:7788`
+5. **Generate captions** — `python3 scripts/gen_captions_generic.py transcript.json captions.ass`
+6. **Assemble** — B-roll overlays, watermark, captions
+7. **BGM + SFX** — music mix + camera shutter on B-roll
+8. **Outro** — HyperFrames render, xfade transition
+9. **Loudnorm** — two-pass to −14 LUFS
+10. **Color correct** (optional) — see Color editor below
 
 Full ffmpeg commands: [`references/pipeline.md`](references/pipeline.md)
 
 ---
 
-## Clients
-
-| Client | FPS | Font | Accent | Details |
-|---|---|---|---|---|
-| Sketchy Studio | 24 | Satoshi | `#9355E6` purple | [`clients/sketchy-studio/brand.md`](clients/sketchy-studio/brand.md) |
-| Wheelhub | 30 | Manrope ExtraBold | `#F7C623` yellow | [`clients/wheelhub/brand.md`](clients/wheelhub/brand.md) |
-| Ragi to Raga | 30 | Satoshi Black | natural/warm | [`clients/ragi-to-raga/brand.md`](clients/ragi-to-raga/brand.md) |
-
----
-
 ## Color editor
 
-Runs a local server with Lightroom-style controls. Preview uses actual ffmpeg-rendered frames — no canvas approximation.
+Runs a local HTTP server with Lightroom-style controls. Preview uses actual ffmpeg-rendered frames — no canvas approximation.
+
+### 1. Create a `project.json` in the scripts folder
+
+```json
+{
+  "sdr_src":           "~/path/to/source.MOV",
+  "logo":              "~/path/to/logo_watermark.png",
+  "logo_x":            60,
+  "logo_y":            60,
+  "bgm":               "~/path/to/bgm.mp3",
+  "bgm_volume":        0.22,
+  "bgm_duration":      84,
+  "captions":          "captions.ass",
+  "sdr_out":           "sdr/out.mp4",
+  "outro":             "~/path/to/outro.mp4",
+  "outro_offset":      83.0,
+  "speech_volume":     2.0,
+  "speech_end":        83.08,
+  "speech_fade_start": 82.85,
+  "broll": [
+    {"file": "~/path/to/clip1.mp4", "start": 12.38, "end": 18.0}
+  ]
+}
+```
+
+### 2. Run the server
 
 ```bash
-cd /your/project/folder
-python3 ~/Documents/sketchy-video-editor/scripts/color_server.py
+python3 scripts/color_server.py
 open http://localhost:7788
 ```
 
 Controls: Temperature, Tint, Saturation, Exposure, Contrast, Highlights, Shadows, Whites, Blacks, Gamma (master + R/G/B channels).
 
-When satisfied, click **⚡ Render** to produce `final_v{N+1}.mp4`.
-
-> The color server is hardcoded with source/output paths at the top of `color_server.py` — update `SDR_SRC`, `BROLL`, `CAPTIONS`, etc. for each project.
+When satisfied, click **⚡ Render** to produce `final.mp4`.
 
 ---
 
-## Adding a new client
+## Caption generator
 
-1. Create `clients/<client-name>/brand.md` with colors, fonts, output specs
-2. Add logos and fonts to `clients/<client-name>/assets/`
-3. Build a HyperFrames outro in `motion-graphics/<client-name>-outro/`
-4. Add any custom caption style to brand.md
+```bash
+python3 scripts/gen_captions_generic.py transcript.json captions.ass \
+  --font "Manrope ExtraBold" \
+  --fontsize 78 \
+  --alignment 8 \
+  --marginv 340
+```
 
-Pipeline steps are the same across all clients — only visual parameters change.
+| Option | Default | Notes |
+|---|---|---|
+| `--font` | `Manrope ExtraBold` | Must be installed on the system |
+| `--fontsize` | `78` | Points |
+| `--alignment` | `8` | ASS alignment (8 = top-center, 2 = bottom-center) |
+| `--marginv` | `340` | Vertical margin in pixels |
+| `--max-words` | `4` | Words per caption phrase |
+| `--gap` | `0.35` | Pause threshold (seconds) to break a phrase |

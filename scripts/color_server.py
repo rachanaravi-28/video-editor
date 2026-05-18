@@ -1,23 +1,70 @@
 #!/usr/bin/env python3
-"""Accurate color editor — preview frames rendered by ffmpeg directly. http://localhost:7788"""
-import http.server, json, subprocess, threading, os, math, urllib.parse
+"""Color editor — preview frames rendered by ffmpeg. http://localhost:7788
 
-BASE     = os.path.dirname(os.path.abspath(__file__))
-SDR_SRC  = os.path.expanduser('~/Downloads/IMG_0359.MOV')
-BROLL    = os.path.join(BASE, 'broll_portrait')
-LOGO     = os.path.expanduser('~/Downloads/wheelhub-edit/logo_small.png')
-BGM      = os.path.join(BASE, 'bgm_lofi.mp3')
-SHUTTER  = os.path.expanduser('~/Downloads/camera-shutter/camera-shutter.wav')
-CAPTIONS = os.path.join(BASE, 'captions.ass')
-SDR_OUT  = os.path.join(BASE, 'sdr', 'IMG_0359.mp4')
+Configure your project by creating a project.json file next to this script:
+
+{
+  "sdr_src":           "~/path/to/source.MOV",
+  "logo":              "~/path/to/logo_watermark.png",
+  "logo_x":            60,
+  "logo_y":            60,
+  "bgm":               "~/path/to/bgm.mp3",
+  "bgm_volume":        0.22,
+  "bgm_duration":      84,
+  "captions":          "captions.ass",
+  "sdr_out":           "sdr/out.mp4",
+  "outro":             "~/path/to/outro.mp4",
+  "outro_offset":      83.0,
+  "speech_volume":     2.0,
+  "speech_end":        83.08,
+  "speech_fade_start": 82.85,
+  "broll": [
+    {"file": "~/path/to/clip1.mp4", "start": 12.38, "end": 18.0},
+    {"file": "~/path/to/clip2.mp4", "start": 28.96, "end": 36.0}
+  ]
+}
+"""
+import http.server, json, subprocess, threading, os
+
+BASE = os.path.dirname(os.path.abspath(__file__))
+
+_cfg = {}
+_cfg_path = os.path.join(BASE, 'project.json')
+if os.path.exists(_cfg_path):
+    with open(_cfg_path) as _f:
+        _cfg = json.load(_f)
+
+
+def _p(key, default=''):
+    val = _cfg.get(key) or os.environ.get(key.upper(), default)
+    return os.path.expanduser(val) if val else default
+
+
+SDR_SRC  = _p('sdr_src')
+LOGO     = _p('logo')
+BGM      = _p('bgm')
+SHUTTER  = os.path.abspath(os.path.join(BASE, '..', 'sfx', 'camera-shutter.wav'))
+CAPTIONS = _p('captions', os.path.join(BASE, 'captions.ass'))
+SDR_OUT  = _p('sdr_out',  os.path.join(BASE, 'sdr_out.mp4'))
 MAIN_OUT = os.path.join(BASE, 'main_preview.mp4')
-OUTRO    = os.path.join(BASE, 'yellow_outro.mp4')
-FINAL    = os.path.join(BASE, 'final_v7.mp4')
+OUTRO    = _p('outro')
+FINAL    = os.path.join(BASE, 'final.mp4')
+
+BROLL_CLIPS       = _cfg.get('broll', [])
+SPEECH_END        = float(_cfg.get('speech_end', 0))
+SPEECH_FADE_START = float(_cfg.get('speech_fade_start', max(0, SPEECH_END - 0.23)))
+SPEECH_VOLUME     = float(_cfg.get('speech_volume', 2.0))
+BGM_VOLUME        = float(_cfg.get('bgm_volume', 0.22))
+BGM_DURATION      = float(_cfg.get('bgm_duration', 0))
+LOGO_X            = _cfg.get('logo_x', 60)
+LOGO_Y            = _cfg.get('logo_y', 60)
+OUTRO_OFFSET      = float(_cfg.get('outro_offset', 0))
 
 render_lock  = threading.Lock()
-preview_lock = threading.Lock()   # separate lock so preview never blocks full render
+preview_lock = threading.Lock()
 
 SETPARAMS = "setparams=range=tv:colorspace=bt709:color_primaries=bt709:color_trc=bt709"
+
 
 def build_color_filter(v):
     temp  = float(v.get('temp',  0));  tint = float(v.get('tint',  0))
@@ -55,8 +102,9 @@ def build_color_filter(v):
 
     return f"{SETPARAMS},{colorbalance},{eq},{curves}"
 
+
 def render_frame_jpeg(timestamp, vf, scale_w=540):
-    """Run ffmpeg to extract a single frame, return JPEG bytes."""
+    """Extract a single frame from SDR_SRC, return JPEG bytes."""
     cmd = [
         'ffmpeg', '-y',
         '-ss', str(timestamp), '-i', SDR_SRC,
@@ -68,65 +116,130 @@ def render_frame_jpeg(timestamp, vf, scale_w=540):
     r = subprocess.run(cmd, capture_output=True, timeout=15)
     return r.stdout if r.returncode == 0 else None
 
+
 def full_render(v):
     vf = build_color_filter(v)
+
+    # Step 1: color-correct to SDR
     r = subprocess.run([
-        'ffmpeg','-y','-t','84','-i',SDR_SRC,
+        'ffmpeg', '-y', '-i', SDR_SRC,
         '-vf', vf,
-        '-c:v','libx264','-crf','18','-preset','fast','-pix_fmt','yuv420p',
-        '-c:a','aac','-b:a','192k', SDR_OUT
+        '-c:v', 'libx264', '-crf', '18', '-preset', 'fast', '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac', '-b:a', '192k', SDR_OUT
     ], capture_output=True)
-    if r.returncode != 0: return False, r.stderr.decode()[-400:]
+    if r.returncode != 0:
+        return False, r.stderr.decode()[-400:]
 
-    fc = (
-        "[1:v]setpts=PTS-STARTPTS+(12.38/TB)[e];"
-        "[2:v]setpts=PTS-STARTPTS+(28.96/TB)[op];"
-        "[3:v]setpts=PTS-STARTPTS+(36.46/TB)[oc];"
-        "[4:v]setpts=PTS-STARTPTS+(50.44/TB)[ch];"
-        "[5:v]setpts=PTS-STARTPTS+(54.52/TB)[br];"
-        "[0:v][e]overlay=0:0:enable='between(t,12.38,18.0)':format=auto[o1];"
-        "[o1][op]overlay=0:0:enable='between(t,28.96,36.0)':format=auto[o2];"
-        "[o2][oc]overlay=0:0:enable='between(t,36.46,48.5)':format=auto[o3];"
-        "[o3][ch]overlay=0:0:enable='between(t,50.44,54.5)':format=auto[o4];"
-        "[o4][br]overlay=0:0:enable='between(t,54.52,56.5)':format=auto[o5];"
-        f"[o5]subtitles='{CAPTIONS}'[o6];"
-        "[o6][6:v]overlay=60:60[vf];"
-        # Speech: boost volume, fade out just before 'and' (83.099s), hard cut at 83.08s
-        "[0:a]volume=2.0,afade=out:start_time=82.85:duration=0.23,atrim=end=83.08,asetpts=PTS-STARTPTS[sp];"
-        "[7:a]atrim=start=0:end=84,afade=out:start_time=80:duration=3,volume=0.22[bm];"
-        # Shutter SFX: 5 delayed copies at each B-roll entry point
-        "[8:a]asplit=5[sh0][sh1][sh2][sh3][sh4];"
-        "[sh0]adelay=12380|12380[sh0d];"
-        "[sh1]adelay=28960|28960[sh1d];"
-        "[sh2]adelay=36460|36460[sh2d];"
-        "[sh3]adelay=50440|50440[sh3d];"
-        "[sh4]adelay=54520|54520[sh4d];"
-        "[sh0d][sh1d][sh2d][sh3d][sh4d]amix=inputs=5:duration=longest[shutter];"
-        "[sp][bm][shutter]amix=inputs=3:duration=first[af]"
+    # Step 2: assemble — B-roll overlays, captions, logo watermark, audio mix
+    n_broll = len(BROLL_CLIPS)
+    inputs = ['-i', SDR_OUT]
+    for clip in BROLL_CLIPS:
+        inputs += ['-i', os.path.expanduser(clip['file'])]
+    if LOGO:
+        inputs += ['-i', LOGO]
+    if BGM:
+        inputs += ['-i', BGM]
+    inputs += ['-i', SHUTTER]
+
+    logo_idx    = 1 + n_broll
+    bgm_idx     = logo_idx + (1 if LOGO else 0)
+    shutter_idx = bgm_idx  + (1 if BGM  else 0)
+
+    video_parts = []
+    audio_parts = []
+
+    # B-roll: offset each clip to its timeline position, then overlay in sequence
+    for i, c in enumerate(BROLL_CLIPS):
+        video_parts.append(f"[{i+1}:v]setpts=PTS-STARTPTS+({c['start']}/TB)[b{i}]")
+
+    cur = '0:v'
+    for i, c in enumerate(BROLL_CLIPS):
+        nxt = f"ov{i}"
+        video_parts.append(
+            f"[{cur}][b{i}]overlay=0:0:enable='between(t,{c['start']},{c['end']})':format=auto[{nxt}]"
+        )
+        cur = nxt
+
+    if os.path.exists(CAPTIONS):
+        video_parts.append(f"[{cur}]subtitles='{CAPTIONS}'[cap]")
+        cur = 'cap'
+
+    if LOGO:
+        video_parts.append(f"[{cur}][{logo_idx}:v]overlay={LOGO_X}:{LOGO_Y}[vf_out]")
+        cur = 'vf_out'
+
+    # Speech: boost, fade, trim
+    audio_parts.append(
+        f"[0:a]volume={SPEECH_VOLUME},"
+        f"afade=out:start_time={SPEECH_FADE_START}:duration=0.23,"
+        f"atrim=end={SPEECH_END},asetpts=PTS-STARTPTS[sp]"
     )
-    r = subprocess.run([
-        'ffmpeg','-y',
-        '-i',SDR_OUT,
-        '-i',os.path.join(BROLL,'engine.mp4'),'-i',os.path.join(BROLL,'oil_pour.mp4'),
-        '-i',os.path.join(BROLL,'oil_change.mp4'),'-i',os.path.join(BROLL,'chain.mp4'),
-        '-i',os.path.join(BROLL,'brakes.mp4'),'-i',LOGO,'-i',BGM,'-i',SHUTTER,
-        '-filter_complex',fc,'-map','[vf]','-map','[af]',
-        '-c:v','libx264','-crf','18','-preset','fast','-pix_fmt','yuv420p',
-        '-c:a','aac','-b:a','192k', MAIN_OUT
-    ], capture_output=True)
-    if r.returncode != 0: return False, r.stderr.decode()[-400:]
+
+    # BGM: trim, fade out last 3s
+    if BGM and BGM_DURATION:
+        bgm_fade = max(0.0, BGM_DURATION - 3)
+        audio_parts.append(
+            f"[{bgm_idx}:a]atrim=start=0:end={BGM_DURATION},"
+            f"afade=out:start_time={bgm_fade}:duration=3,"
+            f"volume={BGM_VOLUME}[bm]"
+        )
+
+    # Shutter SFX: one delayed copy per B-roll entry point
+    if n_broll:
+        splits = ''.join(f'[sh{i}]' for i in range(n_broll))
+        audio_parts.append(f"[{shutter_idx}:a]asplit={n_broll}{splits}")
+        for i, c in enumerate(BROLL_CLIPS):
+            ms = int(c['start'] * 1000)
+            audio_parts.append(f"[sh{i}]adelay={ms}|{ms}[sh{i}d]")
+        mixed = ''.join(f'[sh{i}d]' for i in range(n_broll))
+        audio_parts.append(f"{mixed}amix=inputs={n_broll}:duration=longest[shutter]")
+
+    # Mix all audio streams
+    audio_streams = ['[sp]']
+    if BGM and BGM_DURATION:
+        audio_streams.append('[bm]')
+    if n_broll:
+        audio_streams.append('[shutter]')
+
+    if len(audio_streams) > 1:
+        audio_parts.append(
+            f"{''.join(audio_streams)}amix=inputs={len(audio_streams)}:duration=first[af]"
+        )
+        audio_out = 'af'
+    else:
+        audio_out = 'sp'
+
+    fc = ';'.join(video_parts + audio_parts)
+    video_map = ['-map', f'[{cur}]'] if video_parts else ['-map', '0:v']
 
     r = subprocess.run([
-        'ffmpeg','-y','-i',MAIN_OUT,'-i',OUTRO,
-        '-filter_complex',
-        '[0:v][1:v]xfade=transition=fade:duration=0.5:offset=83.0[vout];'
-        '[0:a][1:a]acrossfade=d=0.5:curve1=exp:curve2=exp[aout]',
-        '-map','[vout]','-map','[aout]',
-        '-c:v','libx264','-crf','18','-preset','fast','-pix_fmt','yuv420p',
-        '-c:a','aac','-b:a','192k', FINAL
+        'ffmpeg', '-y',
+        *inputs,
+        '-filter_complex', fc,
+        *video_map,
+        '-map', f'[{audio_out}]',
+        '-c:v', 'libx264', '-crf', '18', '-preset', 'fast', '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac', '-b:a', '192k', MAIN_OUT
     ], capture_output=True)
-    if r.returncode != 0: return False, r.stderr.decode()[-400:]
-    return True, FINAL
+    if r.returncode != 0:
+        return False, r.stderr.decode()[-400:]
+
+    # Step 3: append outro with xfade transition
+    if OUTRO and os.path.exists(OUTRO):
+        r = subprocess.run([
+            'ffmpeg', '-y', '-i', MAIN_OUT, '-i', OUTRO,
+            '-filter_complex',
+            f'[0:v][1:v]xfade=transition=fade:duration=0.5:offset={OUTRO_OFFSET}[vout];'
+            '[0:a][1:a]acrossfade=d=0.5:curve1=exp:curve2=exp[aout]',
+            '-map', '[vout]', '-map', '[aout]',
+            '-c:v', 'libx264', '-crf', '18', '-preset', 'fast', '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac', '-b:a', '192k', FINAL
+        ], capture_output=True)
+        if r.returncode != 0:
+            return False, r.stderr.decode()[-400:]
+        return True, FINAL
+
+    return True, MAIN_OUT
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -135,51 +248,56 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def send_json(self, code, obj):
         body = json.dumps(obj).encode()
         self.send_response(code)
-        self.send_header('Content-Type','application/json')
+        self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', len(body))
-        self.end_headers(); self.wfile.write(body)
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_GET(self):
-        content = open(os.path.join(BASE,'color_editor.html'),'rb').read()
-        self.send_response(200); self.send_header('Content-Type','text/html')
-        self.send_header('Content-Length',len(content)); self.end_headers()
+        content = open(os.path.join(BASE, 'color_editor.html'), 'rb').read()
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-Length', len(content))
+        self.end_headers()
         self.wfile.write(content)
 
     def do_POST(self):
-        length = int(self.headers.get('Content-Length',0))
+        length = int(self.headers.get('Content-Length', 0))
         body   = json.loads(self.rfile.read(length))
 
         if self.path == '/preview':
             timestamp = float(body.get('timestamp', 2))
-            mode      = body.get('mode', 'after')   # 'before' or 'after'
+            mode      = body.get('mode', 'after')
             vals      = body.get('vals', {})
-
             vf = SETPARAMS if mode == 'before' else build_color_filter(vals)
-
             with preview_lock:
                 jpeg = render_frame_jpeg(timestamp, vf)
-
             if jpeg:
                 self.send_response(200)
-                self.send_header('Content-Type','image/jpeg')
+                self.send_header('Content-Type', 'image/jpeg')
                 self.send_header('Content-Length', len(jpeg))
-                self.end_headers(); self.wfile.write(jpeg)
+                self.end_headers()
+                self.wfile.write(jpeg)
             else:
-                self.send_json(500, {'error':'frame render failed'})
+                self.send_json(500, {'error': 'frame render failed'})
 
         elif self.path == '/render':
             if not render_lock.acquire(blocking=False):
-                self.send_json(503, {'ok':False,'error':'Already rendering'}); return
+                self.send_json(503, {'ok': False, 'error': 'Already rendering'})
+                return
             try:
                 ok, result = full_render(body)
-                self.send_json(200, {'ok':ok,'error':result if not ok else ''})
+                self.send_json(200, {'ok': ok, 'error': result if not ok else ''})
             finally:
                 render_lock.release()
         else:
-            self.send_response(404); self.end_headers()
+            self.send_response(404)
+            self.end_headers()
 
 
 if __name__ == '__main__':
-    server = http.server.HTTPServer(('localhost',7788), Handler)
+    if not SDR_SRC:
+        print('Warning: sdr_src not set. Create a project.json or set SDR_SRC env var.')
+    server = http.server.HTTPServer(('localhost', 7788), Handler)
     print('Color editor: http://localhost:7788  (ffmpeg-accurate preview)')
     server.serve_forever()
