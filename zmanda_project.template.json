@@ -1,0 +1,58 @@
+{
+  "_comment": "Copy this file, rename it (e.g. user_creation.json), fill in your paths, then run: python3 scripts/zmanda_assemble.py user_creation.json",
+
+  "recording":  "~/path/to/screen_recording.mp4",
+  "voiceover":  "~/path/to/voiceover.mp3",
+  "intro":      "~/path/to/intro.mp4",
+  "captions":   "~/path/to/captions.ass",
+  "bgm":        "~/path/to/lofi_bgm.mp3",
+  "output":     "~/path/to/final.mp4",
+
+  "_outro_comment": "Defaults to the Zmanda brand outro. Override only if needed.",
+  "outro": "",
+
+  "_background_comment": "Defaults to the plain Zmanda gradient (bg-31). Use bg-30 (Z PRO logo centered) for title-only screens.",
+  "background": "",
+
+  "voiceover_offset": 0.0,
+
+  "_bgm_comment": "BGM level in decibels. -35 is very subtle, -30 is slightly more present. Keep between -40 and -28.",
+  "bgm_db": -35,
+
+  "_recording_placement_comment": "rec_w scales the recording to this width (pixels). rec_x/rec_y position it on the 1920x1080 canvas.",
+  "rec_w": 1500,
+  "rec_x": 210,
+  "rec_y": 103,
+
+  "_shadow_comment": "Drop shadow under the recording window. opacity 0-1, blur in pixels, dx/dy = offset direction.",
+  "shadow_opacity": 0.55,
+  "shadow_blur": 20,
+  "shadow_dx": 0,
+  "shadow_dy": 12,
+
+  "_cuts_comment": "Segments to REMOVE from the recording (in seconds). These are cut out and the remaining footage is joined.",
+  "cuts": [
+    {"start": 10.5, "end": 18.0, "_label": "long loading screen"},
+    {"start": 45.2, "end": 52.0, "_label": "unnecessary navigation"}
+  ],
+
+  "_speed_ramps_comment": "Segments to speed up (not cut). speed=2.0 plays at 2x, speed=3.0 at 3x.",
+  "speed_ramps": [
+    {"start": 20.0, "end": 30.0, "speed": 2.0, "_label": "slow page load"}
+  ],
+
+  "_blurs_comment": "Regions to blur (e.g. passwords, emails). coordinate_space: 'output' = 1920x1080 frame coords. 'recording' = original recording coords (auto-scaled).",
+  "coordinate_space": "output",
+  "blurs": [
+    {
+      "x": 340, "y": 155, "w": 510, "h": 28,
+      "start": 14.0, "end": 22.0,
+      "_label": "password field"
+    },
+    {
+      "x": 340, "y": 185, "w": 510, "h": 28,
+      "start": 14.0, "end": 22.0,
+      "_label": "confirm password field"
+    }
+  ]
+}
